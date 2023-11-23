@@ -29,7 +29,7 @@ static void parse_options(bf_switchd_context_t *switchd_ctx, std::shared_ptr<Con
 	static struct option options[] = {
 		{"help", no_argument, 0, 'h'},
 		{"config", required_argument, 0, 'c'},
-		{"interface", optional_argument, 0, 'i'},
+		{"interface", required_argument, 0, 'i'},
 		{"address", required_argument, 0, 'a'},
 		{"port", required_argument, 0, 'p'}
 	};
@@ -50,7 +50,14 @@ static void parse_options(bf_switchd_context_t *switchd_ctx, std::shared_ptr<Con
 				printf("Conf-file : %s\n", switchd_ctx->conf_file);
 			break;
 			case 'i':
-
+				config->listen_interface.assign(optarg);
+			break;
+			case 'a':
+				config->listen_interface.assign(optarg);
+			break;
+			case 'p':
+				config->listen_port = atoi(optarg);
+			break;
 			case 'h':
 			case '?':
 				printf("run_controlplane_pie \n");
