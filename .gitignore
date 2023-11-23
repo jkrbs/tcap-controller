@@ -6,4 +6,4 @@ bf_drivers.log
 CMakeCache.txt
 cmake_install.cmake
 .vscode
-controller
+control-plane
