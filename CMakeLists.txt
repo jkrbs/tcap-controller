@@ -1,10 +1,12 @@
 cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
-project(trace_stream_loader VERSION 0.1 LANGUAGES CXX)
+project(tcap-control-plane VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(SDE_LIB_PATH $ENV{SDE_INSTALL}/lib)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_C_COMPILER "gcc")
+set(CMAKE_CXX_COMPILER "g++")
 
 include(GNUInstallDirs)
 
