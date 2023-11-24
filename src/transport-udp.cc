@@ -2,7 +2,11 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <glog/logging.h>
+
 void UDPTransport::initialize_socket() {
+    LOG(INFO) << "Initializing Socket listenaddress: " << listen_address <<":" << listen_port;
+
     char decimal_port[16];
     snprintf(decimal_port, sizeof(decimal_port), "%d", this->listen_port);
     decimal_port[sizeof(decimal_port) / sizeof(decimal_port[0]) - 1] = '\0';
@@ -14,24 +18,24 @@ void UDPTransport::initialize_socket() {
     int r(getaddrinfo(this->listen_address.c_str(), decimal_port, &hints, &f_addrinfo));
     if(r != 0 || f_addrinfo == NULL)
     {
-        throw ("invalid address or port: \"" + this->listen_address + ":" + decimal_port + "\"").c_str();
+        LOG(FATAL) << "invalid address or port: \"" + this->listen_address + ":" + decimal_port + "\"";
     }
     this->socket_fd = socket(f_addrinfo->ai_family, SOCK_DGRAM | SOCK_CLOEXEC, IPPROTO_UDP);
     if(this->socket_fd == -1)
     {
         freeaddrinfo(f_addrinfo);
-        throw ("could not create socket for: \"" + this->listen_address + ":" + decimal_port + "\"").c_str();
+        LOG(FATAL)  << "could not create socket for: " << this->listen_address + ":" + decimal_port;
     }
 }
 
-template<std::size_t S>
-std::size_t UDPTransport::send(std::span<uint8_t, S> buf) {
-    send(this->socket_fd, buf._M_ptr,buf.size);
+std::size_t UDPTransport::send(std::span<uint8_t> buf) {
+    ::send(this->socket_fd, buf.data(),buf.size(), NULL);
 }
 
-template<std::size_t S>
-std::size_t UDPTransport::recv(std::span<uint8_t, S> buf) {
 
+std::size_t UDPTransport::recv(std::span<uint8_t> buf) {
+    LOG(INFO) << "Recv on CPU control-plane UDP port " << listen_port;
+    return ::recv(this->socket_fd, buf.data(), buf.size(), NULL);
 }
 
 UDPTransport::~UDPTransport() {

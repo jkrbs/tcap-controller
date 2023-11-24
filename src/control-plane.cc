@@ -1,3 +1,5 @@
+#include <glog/logging.h>
+
 #include <bf_rt/bf_rt_info.hpp>
 #include <bf_rt/bf_rt_init.hpp>
 #include <bf_rt/bf_rt_common.h>
@@ -7,7 +9,9 @@
 #include <bf_rt/bf_rt_table_operations.hpp>
 
 #include <getopt.h>
+
 #include <iostream>
+
 #include "config.hpp"
 #include <controller.hpp>
 
@@ -53,7 +57,7 @@ static void parse_options(bf_switchd_context_t *switchd_ctx, std::shared_ptr<Con
 				config->listen_interface.assign(optarg);
 			break;
 			case 'a':
-				config->listen_interface.assign(optarg);
+				config->listen_address.assign(optarg);
 			break;
 			case 'p':
 				config->listen_port = atoi(optarg);
@@ -81,15 +85,15 @@ static void parse_options(bf_switchd_context_t *switchd_ctx, std::shared_ptr<Con
 		exit(0);
 	}
 
-	char install_path[256];
-	sprintf(install_path, "%s/install", sde_path);
-
-	switchd_ctx->install_dir = strdup(install_path);
+	switchd_ctx->install_dir = strdup(sde_path);
 	printf("Install Dir: %s\n", switchd_ctx->install_dir);
 }
 
 int main(int argc, char* argv[]) {
-    auto session = bfrt::BfRtSession::sessionCreate();
+	google::InitGoogleLogging(argv[0]);
+    google::InstallFailureSignalHandler();
+
+	auto session = bfrt::BfRtSession::sessionCreate();
     if(session == nullptr)
         printf("fail to open session");
     

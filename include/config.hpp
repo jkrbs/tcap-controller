@@ -11,6 +11,9 @@ class Config {
     listen_address(listen_address), 
     listen_interface(listen_interface), 
     listen_port(listen_port) {};
-
+    std::ostream &operator<<(std::ostream &stream) {
+        stream << "{ address= " << listen_address << ", port: " << listen_port << ", interface: " << listen_interface << " }";
+        return stream;
+    };
     Config() {};
 };

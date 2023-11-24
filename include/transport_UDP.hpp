@@ -39,9 +39,7 @@ public:
 
     ~UDPTransport();
 
-    template <std::size_t S>
-    std::size_t send(std::span<uint8_t, S> buf);
+    std::size_t send(std::span<uint8_t> buf);
 
-    template <std::size_t S>
-    std::size_t recv(std::span<uint8_t, S> buf);
+    std::size_t recv(std::span<uint8_t> buf);
 };
