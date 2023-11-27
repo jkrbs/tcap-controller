@@ -115,8 +115,7 @@ int main(int argc, char* argv[]) {
 
 	printf("Status: %s\n", bf_err_str(status));
 
-    auto c = Controller(switchd_ctx, config);
-	c.run();
+	while(1) {}
 
     return EXIT_SUCCESS;
 }

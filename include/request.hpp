@@ -27,7 +27,7 @@ namespace Request {
         /* Gap in OPCode Numbers Caused by Packet Types Unsupported by this implementation */
         None = 32, // None is used as default value
 
-        //nighP4 Implementation specific OP Codes
+        //P4 Implementation specific OP Codes
         InsertCap = 64,
     };
 

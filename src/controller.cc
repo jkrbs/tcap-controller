@@ -14,7 +14,7 @@ Controller::Controller(bf_switchd_context_t *switchd_ctx, std::shared_ptr<Config
 }
 
 void Controller::run() {
-    auto cpu_mirror_listener = std::thread([this]{
+    this->cpu_mirror_listener = std::thread([this]{
         auto recv_buffer = std::array<uint8_t, 1024*1024>();
 
         while(1) {
@@ -28,9 +28,11 @@ void Controller::run() {
                     LOG(INFO) << "Performing Table Insert for Capability";
                     break;
                 default:
-                    LOG(FATAL) << "Invalid cmd_type in packet handling. This should have been caught earlier.";
+                    LOG(INFO) << "Invalid cmd_type in packet handling. This should have been caught earlier.";
             }
         }
     });
-    while(true) {}
+    this->cpu_mirror_listener.detach();
+}
+
 }

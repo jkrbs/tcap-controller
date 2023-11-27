@@ -6,9 +6,9 @@ namespace Request {
         if (data.size() >= sizeof(CommonHeader)) {
             common_hdr = reinterpret_cast<struct CommonHeader*>(data.subspan(0, sizeof(CommonHeader)).data());
             util::hexdump(data.data(), data.size());
-            switch (common_hdr->cmd_type)
+            switch (CmdType(common_hdr->cmd_type))
             {
-            InsertCap:
+            case InsertCap:
                 LOG(INFO) << "Received  Insert Cap Request for cap id " << common_hdr->cap_id << std::endl;
 
                 insert_cap_hdr = reinterpret_cast<::Request::InserCapHeader*>(data.subspan(sizeof(CommonHeader), 
@@ -16,12 +16,12 @@ namespace Request {
                 
                 break;
             
-            CapRevoke:
+            case CapRevoke:
                 LOG(INFO) << "Received  Revoke Cap Request for cap id " << common_hdr->cap_id << std::endl;
                 break;
 
             default:
-                LOG(FATAL) << "Runtime Error: Unknown CMDType " + common_hdr->cmd_type;
+                LOG(INFO) << "Runtime Error: Unknown CMDType " + common_hdr->cmd_type;
                 break;
             }
 
