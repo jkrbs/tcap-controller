@@ -107,6 +107,18 @@ int main(int argc, char* argv[]) {
 	
 	parse_options(switchd_ctx, config, argc, argv);
 
+	auto &devMgr = bfrt::BfRtDevMgr::getInstance();
+	const bfrt::BfRtInfo *bfrtInfo = nullptr;
+
+	bf_rt_target_t device_target;
+	device_target.dev_id = 0;
+	device_target.pipe_id = 0xffff;
+
+	auto bf_status = devMgr.bfRtInfoGet(device_target.dev_id, "cap-manager", &bfrtInfo);
+	assert(bf_status == BF_SUCCESS);
+    auto c = Controller(switchd_ctx, session, &device_target, bfrtInfo, config);
+	c.run();
+
 	switchd_ctx->dev_sts_thread = true;
 	switchd_ctx->dev_sts_port = 7777;
 

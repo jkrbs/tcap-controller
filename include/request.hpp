@@ -55,7 +55,7 @@ class Request {
     public:
 
     struct CommonHeader* common_hdr = nullptr;
-    struct InserCapHeader* insert_cap_hdr = nullptr;
+    struct InsertCapHeader* insert_cap_hdr = nullptr;
     Request() {};
 
     void parse(std::span<uint8_t> data);
