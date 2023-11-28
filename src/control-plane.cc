@@ -49,7 +49,7 @@ static void parse_options(bf_switchd_context_t *switchd_ctx, std::shared_ptr<Con
 			case 'c':
 				char conf_path[256];
 				snprintf(conf_path, 256, "%s/share/p4/targets/tofino/%s.conf", sde_path, optarg);
-
+				config->program_name.assign(optarg);
 				switchd_ctx->conf_file = strdup(conf_path);
 				printf("Conf-file : %s\n", switchd_ctx->conf_file);
 			break;
@@ -106,26 +106,27 @@ int main(int argc, char* argv[]) {
 	auto config = std::shared_ptr<Config>(new Config());
 	
 	parse_options(switchd_ctx, config, argc, argv);
+	switchd_ctx->running_in_background = true;
 
 	auto &devMgr = bfrt::BfRtDevMgr::getInstance();
 	const bfrt::BfRtInfo *bfrtInfo = nullptr;
 
 	bf_rt_target_t device_target;
 	device_target.dev_id = 0;
-	device_target.pipe_id = 0xffff;
+	device_target.pipe_id = BF_DEV_PIPE_ALL;
 
-	auto bf_status = devMgr.bfRtInfoGet(device_target.dev_id, "cap-manager", &bfrtInfo);
-	assert(bf_status == BF_SUCCESS);
+	bf_status_t status = bf_switchd_lib_init(switchd_ctx);
+
+	printf("Status: %s\n", bf_err_str(status));
+
+	status = devMgr.bfRtInfoGet(device_target.dev_id, config->program_name.c_str(), &bfrtInfo);
+	printf("Status: %s\n", bf_err_str(status));
+	assert(status == BF_SUCCESS);
     auto c = Controller(switchd_ctx, session, &device_target, bfrtInfo, config);
 	c.run();
 
 	switchd_ctx->dev_sts_thread = true;
 	switchd_ctx->dev_sts_port = 7777;
-
-	printf("Give status next\n");
-	bf_status_t status = bf_switchd_lib_init(switchd_ctx);
-
-	printf("Status: %s\n", bf_err_str(status));
 
 	while(1) {}
 
