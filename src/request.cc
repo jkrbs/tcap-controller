@@ -11,7 +11,7 @@ namespace Request {
             case InsertCap:
                 LOG(INFO) << "Received  Insert Cap Request for cap id " << common_hdr->cap_id << std::endl;
 
-                insert_cap_hdr = reinterpret_cast<::Request::InserCapHeader*>(data.subspan(sizeof(CommonHeader), 
+                insert_cap_hdr = reinterpret_cast<::Request::InsertCapHeader*>(data.subspan(sizeof(CommonHeader), 
                                                                             sizeof(::Request::InsertCapHeader)).data());
                 
                 break;
