@@ -57,6 +57,14 @@ Controller::Controller(bf_switchd_context_t *switchd_ctx, std::shared_ptr<bfrt::
 //
         LOG(INFO) << "Id: " << i << " name: " << name << " size: " << size;
     }
+
+    // start CPU Port mirror session
+    bf_status = this->configure_mirroring(128, 28);
+    assert(bf_status == BF_SUCCESS);
+    bf_status = this->configure_mirror_port(128, 8, 28);
+    assert(bf_status == BF_SUCCESS);
+    bf_status = this->configure_mirror_port(128, 9, 28);
+    assert(bf_status == BF_SUCCESS);
 }
 
 void Controller::run() {
@@ -114,4 +122,116 @@ void Controller::cap_insert(struct Request::InsertCapHeader *hdr) {
 									*key.get(), *d.get());
 	assert(bf_status == BF_SUCCESS);
     this->session->commitTransaction(true);
+}
+
+bf_status_t Controller::configure_mirroring(uint16_t session_id_val, uint64_t eport) {
+    const bfrt::BfRtTable* mirror_cfg = nullptr;
+
+    bf_status_t bf_status = this->bfrtInfo->bfrtTableFromNameGet("$mirror.cfg", &mirror_cfg);
+    assert(bf_status == BF_SUCCESS);
+
+    bf_rt_id_t session_id, normal;
+    bf_status = mirror_cfg->keyFieldIdGet("$sid", &session_id);
+    assert(bf_status == BF_SUCCESS);
+    bf_status = mirror_cfg->actionIdGet("$normal", &normal);
+    assert(bf_status == BF_SUCCESS);
+
+    std::unique_ptr<bfrt::BfRtTableKey> mirror_cfg_key;
+    std::unique_ptr<bfrt::BfRtTableData> mirror_cfg_data;
+
+    bf_status = mirror_cfg->keyAllocate(&mirror_cfg_key);
+    assert(bf_status == BF_SUCCESS);
+    bf_status = mirror_cfg->dataAllocate(normal, &mirror_cfg_data);
+    assert(bf_status == BF_SUCCESS);
+
+    bf_status = mirror_cfg_key->setValue(session_id, session_id_val);
+    assert(bf_status == BF_SUCCESS);
+
+//    bf_status = mirror_cfg_data->setValue(1, true);
+//    assert(bf_status == BF_SUCCESS);
+    bf_rt_id_t session_enabled, direction, ucast_egress_port, ucast_egress_port_valid, copy_to_cpu;
+    bf_status = mirror_cfg->dataFieldIdGet("$session_enable", &session_enabled);
+    assert(bf_status == BF_SUCCESS);
+    bf_status = mirror_cfg->dataFieldIdGet("$direction", &direction);
+    assert(bf_status == BF_SUCCESS);
+    bf_status = mirror_cfg->dataFieldIdGet("$ucast_egress_port", &ucast_egress_port);
+    assert(bf_status == BF_SUCCESS);
+    bf_status = mirror_cfg->dataFieldIdGet("$ucast_egress_port_valid", &ucast_egress_port_valid);
+    assert(bf_status == BF_SUCCESS);
+    bf_status = mirror_cfg->dataFieldIdGet("$copy_to_cpu", &copy_to_cpu);
+    assert(bf_status == BF_SUCCESS);
+
+    bf_status = mirror_cfg_data->setValue(session_enabled, true);
+    assert(bf_status == BF_SUCCESS);
+    bf_status = mirror_cfg_data->setValue(direction, std::string("BOTH"));
+    assert(bf_status == BF_SUCCESS);
+    bf_status = mirror_cfg_data->setValue(ucast_egress_port, eport);
+    assert(bf_status == BF_SUCCESS);
+    bf_status = mirror_cfg_data->setValue(ucast_egress_port_valid, true);
+    assert(bf_status == BF_SUCCESS);
+    bf_status = mirror_cfg_data->setValue(copy_to_cpu, true);
+    assert(bf_status == BF_SUCCESS);
+
+	bf_status = mirror_cfg->tableEntryAdd(*this->session, *this->device, 0,
+									*mirror_cfg_key.get(), *mirror_cfg_data.get());
+    LOG(INFO) << "table entry add result:" << bf_err_str(bf_status);
+	assert(bf_status == BF_SUCCESS);
+
+    return BF_SUCCESS;
+}
+
+bf_status_t Controller::configure_mirror_port(uint16_t session_id_val, uint64_t iport, uint64_t eport) {
+    const bfrt::BfRtTable* mirror_fwd = nullptr;
+
+    auto bf_status = this->bfrtInfo->bfrtTableFromNameGet("mirror_fwd", &mirror_fwd);
+    assert(bf_status == BF_SUCCESS);
+
+    
+    std::unique_ptr<bfrt::BfRtTableKey> mirror_fwd_key;
+    std::unique_ptr<bfrt::BfRtTableData> mirror_fwd_data;
+
+    bf_rt_id_t ingress_port, set_md;
+    bf_status = mirror_fwd->keyFieldIdGet("ig_intr_md.ingress_port", &ingress_port);
+    assert(bf_status == BF_SUCCESS);
+    bf_status = mirror_fwd->actionIdGet("Ingress.set_md", &set_md);
+    assert(bf_status == BF_SUCCESS);
+
+    bf_status = mirror_fwd->keyAllocate(&mirror_fwd_key);
+    assert(bf_status == BF_SUCCESS);
+    bf_status = mirror_fwd->dataAllocate(set_md, &mirror_fwd_data);
+    assert(bf_status == BF_SUCCESS);
+
+    bf_status = mirror_fwd_key->setValue(ingress_port, iport);
+    assert(bf_status == BF_SUCCESS);
+
+    // bf_rt_id_t egress_port, ingress_mir, ingress_sid, egress_mir, egress_sid;
+    // bf_status = mirror_fwd->dataFieldIdGet("dest_port", &egress_port);
+    // LOG(INFO) << "dest_port_get result:" << bf_err_str(bf_status);
+    // assert(bf_status == BF_SUCCESS);
+    // bf_status = mirror_fwd->dataFieldIdGet("ing_mir", &ingress_mir);
+    // assert(bf_status == BF_SUCCESS);
+    // bf_status = mirror_fwd->dataFieldIdGet("ing_ses", &ingress_sid);
+    // assert(bf_status == BF_SUCCESS);
+    // bf_status = mirror_fwd->dataFieldIdGet("egr_mir", &egress_mir);
+    // assert(bf_status == BF_SUCCESS);
+    // bf_status = mirror_fwd->dataFieldIdGet("egr_ses", &egress_sid);
+    // assert(bf_status == BF_SUCCESS);
+
+
+    bf_status = mirror_fwd_data->setValue(1, eport); // egress_port
+    assert(bf_status == BF_SUCCESS);
+    bf_status = mirror_fwd_data->setValue(2, (uint64_t)1); // ingress_mir
+    assert(bf_status == BF_SUCCESS);
+    bf_status = mirror_fwd_data->setValue(3, (uint64_t)session_id_val); // ingress_sid
+    assert(bf_status == BF_SUCCESS);
+    bf_status = mirror_fwd_data->setValue(4, (uint64_t)1); // egress mir
+    assert(bf_status == BF_SUCCESS);
+    bf_status = mirror_fwd_data->setValue(5, (uint64_t)session_id_val); // egress sid
+    assert(bf_status == BF_SUCCESS);
+
+    bf_status = mirror_fwd->tableEntryAdd(*this->session, *this->device, 0,
+									*mirror_fwd_key.get(), *mirror_fwd_data.get());
+	    LOG(INFO) << "table entry add result:" << bf_err_str(bf_status);
+	assert(bf_status == BF_SUCCESS);
+    return BF_SUCCESS;
 }

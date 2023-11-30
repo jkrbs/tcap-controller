@@ -37,6 +37,8 @@ class Controller {
     std::thread cpu_mirror_listener;
     struct CapTableFieldIds cap_table_fields = { 0 };
     void cap_insert(struct Request::InsertCapHeader* hdr);
+    bf_status_t configure_mirroring(uint16_t session_id_val, uint64_t eport);
+    bf_status_t configure_mirror_port(uint16_t session_id_val, uint64_t iport, uint64_t eport);
     public:
     Controller(bf_switchd_context_t *switchd_ctx);
     Controller(bf_switchd_context_t *switchd_ctx, std::shared_ptr<bfrt::BfRtSession> session,
