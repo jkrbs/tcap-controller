@@ -58,12 +58,18 @@ Controller::Controller(bf_switchd_context_t *switchd_ctx, std::shared_ptr<bfrt::
         LOG(INFO) << "Id: " << i << " name: " << name << " size: " << size;
     }
 
+    // configure front ports
+    bf_status = this->enable_device_port(1, BF_SPEED_100G, BF_FEC_TYP_RS);
+    assert(bf_status == BF_SUCCESS);
+    bf_status = this->enable_device_port(32, BF_SPEED_100G, BF_FEC_TYP_RS);
+    assert(bf_status == BF_SUCCESS);
+
     // start CPU Port mirror session
-    bf_status = this->configure_mirroring(128, 28);
+    bf_status = this->configure_mirroring(128, 64);
     assert(bf_status == BF_SUCCESS);
-    bf_status = this->configure_mirror_port(128, 8, 28);
+    bf_status = this->configure_mirror_port(128, 1, 64);
     assert(bf_status == BF_SUCCESS);
-    bf_status = this->configure_mirror_port(128, 9, 28);
+    bf_status = this->configure_mirror_port(128, 32, 64);
     assert(bf_status == BF_SUCCESS);
 }
 
@@ -233,5 +239,54 @@ bf_status_t Controller::configure_mirror_port(uint16_t session_id_val, uint64_t 
 									*mirror_fwd_key.get(), *mirror_fwd_data.get());
 	    LOG(INFO) << "table entry add result:" << bf_err_str(bf_status);
 	assert(bf_status == BF_SUCCESS);
+    return BF_SUCCESS;
+}
+
+bf_status_t Controller::enable_device_port(uint64_t front_port, bf_port_speed_t speed_d, bf_fec_type_t fec_d) {
+    LOG(INFO) << "Enabling Device Ports";
+
+    const bfrt::BfRtTable* port_table = nullptr;
+
+    auto bf_status = this->bfrtInfo->bfrtTableFromNameGet("$PORT", &port_table);
+    assert(bf_status == BF_SUCCESS);
+
+    bf_rt_id_t dev_port, port_enable, speed, fec;
+    bf_status = port_table->keyFieldIdGet("$DEV_PORT", &dev_port);
+    assert(bf_status == BF_SUCCESS);
+    bf_status = port_table->dataFieldIdGet("$PORT_ENABLE", &port_enable);
+    assert(bf_status == BF_SUCCESS);
+
+    bf_status = port_table->dataFieldIdGet("$SPEED", &speed);
+    assert(bf_status == BF_SUCCESS);
+
+    bf_status = port_table->dataFieldIdGet("$FEC", &fec);
+    assert(bf_status == BF_SUCCESS);
+
+    std::unique_ptr<bfrt::BfRtTableKey> port_table_key;
+    std::unique_ptr<bfrt::BfRtTableData> port_table_data;
+
+
+    bf_status = port_table->keyAllocate(&port_table_key);
+    assert(bf_status == BF_SUCCESS);
+    bf_status = port_table->dataAllocate(&port_table_data);
+    assert(bf_status == BF_SUCCESS);
+
+    bf_status = port_table_key->setValue(dev_port, front_port);
+    assert(bf_status == BF_SUCCESS);
+
+    bf_status = port_table_data->setValue(port_enable, true);
+    assert(bf_status == BF_SUCCESS);
+    bf_status = port_table_data->setValue(speed, (uint64_t)speed_d);
+    assert(bf_status == BF_SUCCESS);
+    bf_status = port_table_data->setValue(fec, (uint64_t)fec_d);
+    assert(bf_status == BF_SUCCESS);
+
+   
+     bf_status = port_table->tableEntryAdd(*this->session, *this->device, 0,
+									*port_table_key.get(), *port_table_data.get());
+	    LOG(INFO) << "table entry add result:" << bf_err_str(bf_status);
+	assert(bf_status == BF_SUCCESS);
+  
+
     return BF_SUCCESS;
 }
