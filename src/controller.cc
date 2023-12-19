@@ -10,6 +10,9 @@
 #include <bf_rt/bf_rt_table_key.hpp>
 #include <bf_rt/bf_rt_table_data.hpp>
 
+#include <bf_pm/bf_pm_intf.h>
+#include <bf_pal_pltfm_porting.h>
+
 Controller::Controller(bf_switchd_context_t *switchd_ctx, std::shared_ptr<bfrt::BfRtSession> session,
     bf_rt_target_t *device, const bfrt::BfRtInfo *info, std::shared_ptr<Config> cfg) {
     this->session = session;
@@ -242,8 +245,20 @@ bf_status_t Controller::configure_mirror_port(uint16_t session_id_val, uint64_t 
     return BF_SUCCESS;
 }
 
-bf_status_t Controller::enable_device_port(uint64_t front_port, bf_port_speed_t speed_d, bf_fec_type_t fec_d) {
-    LOG(INFO) << "Enabling Device Ports";
+bf_status_t Controller::enable_device_port(uint32_t front_port, bf_port_speed_t speed_d, bf_fec_type_t fec_d) {
+    bf_pal_front_port_handle_t port_hdl = bf_pal_front_port_handle_t {front_port, 0};
+    bf_dev_port_t dev_port_val;
+
+    bf_status_t bf_status = bf_pm_port_front_panel_port_to_dev_port_get(&port_hdl, &(this->device->dev_id), &dev_port_val);
+    assert(bf_status == BF_SUCCESS);
+    LOG(INFO) << "Enabling Device Front Port: " << front_port << " dev port: " << dev_port_val;
+
+    bf_status = bf_port_add(this->device->dev_id, dev_port_val, speed_d, fec_d);
+    assert(bf_status == BF_SUCCESS);
+    bf_status = bf_port_enable(this->device->dev_id, dev_port_val, true);
+    assert(bf_status == BF_SUCCESS);
+
+    return BF_SUCCESS;
 
     const bfrt::BfRtTable* port_table = nullptr;
 
@@ -271,14 +286,14 @@ bf_status_t Controller::enable_device_port(uint64_t front_port, bf_port_speed_t 
     bf_status = port_table->dataAllocate(&port_table_data);
     assert(bf_status == BF_SUCCESS);
 
-    bf_status = port_table_key->setValue(dev_port, front_port);
+    bf_status = port_table_key->setValue(dev_port, dev_port_val);
     assert(bf_status == BF_SUCCESS);
 
     bf_status = port_table_data->setValue(port_enable, true);
     assert(bf_status == BF_SUCCESS);
-    bf_status = port_table_data->setValue(speed, (uint64_t)speed_d);
+    bf_status = port_table_data->setValue(speed, (uint8_t*)&speed_d, 4);
     assert(bf_status == BF_SUCCESS);
-    bf_status = port_table_data->setValue(fec, (uint64_t)fec_d);
+    bf_status = port_table_data->setValue(fec, (uint8_t*)&fec_d, 4);
     assert(bf_status == BF_SUCCESS);
 
    

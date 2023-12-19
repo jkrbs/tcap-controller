@@ -41,7 +41,7 @@ class Controller {
     bf_status_t configure_mirroring(uint16_t session_id_val, uint64_t eport);
     bf_status_t configure_mirror_port(uint16_t session_id_val, uint64_t iport, uint64_t eport);
     
-    bf_status_t enable_device_port(uint64_t front_port, bf_port_speed_t speed_d, bf_fec_type_t fec_d);
+    bf_status_t enable_device_port(uint32_t front_port, bf_port_speed_t speed_d, bf_fec_type_t fec_d);
     
     public:
     Controller(bf_switchd_context_t *switchd_ctx);

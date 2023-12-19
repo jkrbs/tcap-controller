@@ -64,8 +64,8 @@ static void parse_options(bf_switchd_context_t *switchd_ctx, std::shared_ptr<Con
 			break;
 			case 'h':
 			case '?':
-				printf("run_controlplane_pie \n");
-				printf("Usage : run_controlplane_pie -p <name of the program>\n");
+				printf("control-plane \n");
+				printf("Usage : control=plane -c<name of the program> -a<listen_address>\n");
 				std::cout << 
 				"help message :"
 				"TODO"
