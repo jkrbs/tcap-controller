@@ -9,7 +9,7 @@ set(CMAKE_C_COMPILER "gcc")
 set(CMAKE_CXX_COMPILER "g++")
 
 include(GNUInstallDirs)
-
+include_directories(dist/rapidjson/include/)
 include_directories($ENV{SDE_INSTALL}/include/ include)
 
 find_package(Threads REQUIRED)

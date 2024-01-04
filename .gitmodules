@@ -1,0 +1,3 @@
+[submodule "dist/rapidjson"]
+	path = dist/rapidjson
+	url = https://github.com/Tencent/rapidjson.git
