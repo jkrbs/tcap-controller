@@ -30,14 +30,14 @@ void UDPTransport::initialize_socket() {
 }
 
 std::size_t UDPTransport::send(std::span<uint8_t> buf) {
-    ::send(this->socket_fd, buf.data(),buf.size(), NULL);
+    return ::send(this->socket_fd, buf.data(),buf.size(), 0);
 }
 
 
 std::size_t UDPTransport::recv(std::span<uint8_t> buf) {
     LOG(INFO) << "Recv on CPU control-plane UDP port " << listen_port;
 
-    size_t len = ::recv(this->socket_fd, buf.data(), buf.size(), NULL);
+    size_t len = ::recv(this->socket_fd, buf.data(), buf.size(), 0);
     if(len > buf.size_bytes()) {
         LOG(FATAL) << "Received more bytes than the buffer can fit!";
     }    
