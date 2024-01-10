@@ -61,16 +61,52 @@ Controller::Controller(bf_switchd_context_t *switchd_ctx, std::shared_ptr<bfrt::
     // configure front ports
     bf_status = this->enable_device_port(1, BF_SPEED_100G, BF_FEC_TYP_RS);
     assert(bf_status == BF_SUCCESS);
-    bf_status = this->enable_device_port(32, BF_SPEED_100G, BF_FEC_TYP_RS);
+
+    bf_status = this->bfrtInfo->bfrtTableFromNameGet("Ingress.arp.arp_exact", &this->arp_table);
+  	assert(bf_status == BF_SUCCESS);
+    bf_status = this->arp_table->keyFieldIdGet("ipaddr", &this->arp_table_fields.ipaddr);
+    assert(bf_status==BF_SUCCESS);
+
+    bf_status = this->arp_table->actionIdGet("Ingress.arp.arp_reply", &this->arp_table_fields.arp_reply);
+    assert(bf_status==BF_SUCCESS);
+
+
+    bf_status = this->setup_arp(cfg->port_configs);
+    assert(bf_status == BF_SUCCESS);
+    
+}
+
+bf_status_t Controller::setup_arp(std::shared_ptr<std::vector<PortConfig>> ports) {
+    bf_status_t bf_status;
+    auto flag = bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW;
+
+    std::unique_ptr<bfrt::BfRtTableKey> key;
+
+    bf_status = this->arp_table->keyAllocate(&key);
     assert(bf_status == BF_SUCCESS);
 
-    // start CPU Port mirror session
-    bf_status = this->configure_mirroring(128, 64);
-    assert(bf_status == BF_SUCCESS);
-    bf_status = this->configure_mirror_port(128, 1, 64);
-    assert(bf_status == BF_SUCCESS);
-    bf_status = this->configure_mirror_port(128, 32, 64);
-    assert(bf_status == BF_SUCCESS);
+    for(PortConfig &port : *ports) {
+        bf_status = key->setValue(this->arp_table_fields.ipaddr, port.client_ip_address, 4);
+        assert(bf_status == BF_SUCCESS);
+        std::unique_ptr<bfrt::BfRtTableData> d;
+        bf_status = this->arp_table->dataAllocate(this->arp_table_fields.arp_reply, &d);
+        assert(bf_status == BF_SUCCESS);
+        
+        bf_status = d->setValue(1, port.client_mac_address, 6);
+        assert(bf_status == BF_SUCCESS);
+
+        bool is_new = false;
+
+        this->session->beginTransaction(false);
+        bf_status = this->arp_table->tableEntryAddOrMod(*this->session, *this->device, 0,
+                                        *key.get(), *d.get(), &is_new);
+        if(bf_status != BF_SUCCESS) {
+            LOG(INFO) << "Failed to insert ARP Entry for " << port.pprint();
+        }
+        this->session->commitTransaction(true);
+    }
+
+    return BF_SUCCESS;
 }
 
 void Controller::run() {

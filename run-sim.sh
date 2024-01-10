@@ -12,5 +12,5 @@ export SDE_INSTALL=$SDE/install
 export LD_LIBRARY_PATH=/usr/local/lib:$SDE_INSTALL/lib:$LD_LIBRARY_PATH
 export GLOG_minloglevel=0
 export GLOG_logtostderr=1
-./control-plane --switch-config=cap-manager --interface=enx020000000002 --address=10.0.9.2 --port=1234
+./control-plane --switch-config=cap-manager --interface=veth9 --address=10.0.9.2 --port=1234 --config=sim.json
 EOF

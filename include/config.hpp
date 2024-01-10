@@ -1,6 +1,26 @@
 #pragma once
 #include <cstdint>
 #include <memory>
+#include <vector>
+#include <sstream>
+
+class PortConfig {
+    public:
+    uint64_t port_number;
+    uint8_t switch_mac_address[6];
+    uint8_t client_mac_address[6];
+    uint8_t client_ip_address[4];
+
+    std::string pprint() {
+        auto s = std::stringstream();
+        s << "Port ( " << port_number
+            <<" ip: " << client_ip_address[0] << "." << client_ip_address[1] << "." << client_ip_address[2] << "." << client_ip_address[3] 
+            << ")"; 
+        auto str = std::string();
+        s >> str;
+        return str;
+    };
+};
 
 class Config {
 	public:
@@ -8,6 +28,8 @@ class Config {
 	std::string listen_address = std::string("");
 	std::string listen_interface = std::string("");
     std::string program_name = std::string("");
+    std::shared_ptr<std::vector<PortConfig>> port_configs = std::shared_ptr<std::vector<PortConfig>>(new std::vector<PortConfig>());
+
     Config(std::string listen_address, uint16_t listen_port, std::string listen_interface) : 
     listen_address(listen_address), 
     listen_interface(listen_interface), 
@@ -17,4 +39,5 @@ class Config {
         return stream;
     };
     Config() {};
+    void add_port_config(std::string path);
 };

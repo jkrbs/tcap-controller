@@ -26,6 +26,11 @@ struct CapTableFieldIds {
   bf_rt_id_t action_drop;
 };
 
+struct ARPTableFieldIds {
+  bf_rt_id_t ipaddr;
+  bf_rt_id_t arp_reply;
+};
+
 class Controller {
     private:
     std::shared_ptr<UDPTransport> socket;
@@ -34,15 +39,17 @@ class Controller {
     bf_rt_target_t *device = nullptr;
     const bfrt::BfRtInfo *bfrtInfo = nullptr;
     const bfrt::BfRtTable* cap_table = nullptr;
+    const bfrt::BfRtTable* arp_table = nullptr;
     std::thread cpu_mirror_listener;
     struct CapTableFieldIds cap_table_fields = { 0 };
+    struct ARPTableFieldIds arp_table_fields = { 0 };
     void cap_insert(struct Request::InsertCapHeader* hdr);
     
     bf_status_t configure_mirroring(uint16_t session_id_val, uint64_t eport);
     bf_status_t configure_mirror_port(uint16_t session_id_val, uint64_t iport, uint64_t eport);
     
     bf_status_t enable_device_port(uint64_t front_port, bf_port_speed_t speed_d, bf_fec_type_t fec_d);
-    
+    bf_status_t setup_arp(std::shared_ptr<std::vector<PortConfig>> ports);
     public:
     Controller(bf_switchd_context_t *switchd_ctx);
     Controller(bf_switchd_context_t *switchd_ctx, std::shared_ptr<bfrt::BfRtSession> session,

@@ -15,6 +15,10 @@
 #include "config.hpp"
 #include <controller.hpp>
 
+#include "rapidjson/document.h"
+#include "rapidjson/istreamwrapper.h"
+#include "rapidjson/filereadstream.h"
+
 extern "C" {
 	#include <bf_switchd/bf_switchd.h>
 }
@@ -32,6 +36,7 @@ static void parse_options(bf_switchd_context_t *switchd_ctx, std::shared_ptr<Con
 
 	static struct option options[] = {
 		{"help", no_argument, 0, 'h'},
+		{"switch-config", required_argument, 0, 's'},
 		{"config", required_argument, 0, 'c'},
 		{"interface", required_argument, 0, 'i'},
 		{"address", required_argument, 0, 'a'},
@@ -39,14 +44,14 @@ static void parse_options(bf_switchd_context_t *switchd_ctx, std::shared_ptr<Con
 	};
 
 	while (1) {
-		int c = getopt_long(argc, argv, "hciap:", options, &option_index);
+		int c = getopt_long(argc, argv, "hciapd:", options, &option_index);
 
 		if (c == -1) {
 			break;
 		}
 		
 		switch (c) {
-			case 'c':
+			case 's':
 				char conf_path[256];
 				snprintf(conf_path, 256, "%s/share/p4/targets/tofino/%s.conf", sde_path, optarg);
 				config->program_name.assign(optarg);
@@ -61,6 +66,9 @@ static void parse_options(bf_switchd_context_t *switchd_ctx, std::shared_ptr<Con
 			break;
 			case 'p':
 				config->listen_port = atoi(optarg);
+			break;
+			case 'c':
+				config->add_port_config(optarg);
 			break;
 			case 'h':
 			case '?':
@@ -108,6 +116,7 @@ int main(int argc, char* argv[]) {
 	parse_options(switchd_ctx, config, argc, argv);
 	switchd_ctx->running_in_background = true;
 
+	
 	auto &devMgr = bfrt::BfRtDevMgr::getInstance();
 	const bfrt::BfRtInfo *bfrtInfo = nullptr;
 

@@ -22,7 +22,11 @@ find_library(BFUTILS_LIBRARY libbfutils.so PATHS ${SDE_LIB_PATH})
 
 find_package (glog 0.6.0 REQUIRED)
 
-add_executable(control-plane src/control-plane.cc src/controller.cc src/request.cc src/transport-udp.cc)
+add_executable(control-plane    src/control-plane.cc 
+                                src/config.cc 
+                                src/controller.cc
+                                src/request.cc
+                                src/transport-udp.cc)
 
 target_link_libraries(control-plane Threads::Threads)
 
