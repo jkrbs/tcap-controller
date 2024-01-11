@@ -19,5 +19,13 @@
             "client_mac": "2a:fe:e6:c6:39:ca",
             "client_ip4a": "10.0.3.2"
         }
+    ],
+    "capabilities": [
+        {
+            "cap_id": 100,
+            "src_ip": "10.0.3.2",
+            "dstAddr": "1a:50:7b:d7:05:e0",
+            "srcAddr": "d2:92:07:39:f4:99"
+        }
     ]
 }

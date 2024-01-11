@@ -4,13 +4,23 @@
 #include <vector>
 #include <sstream>
 
+class Capability {
+public:
+    uint64_t cap_id;
+    uint64_t port_number = 0;
+    uint8_t dstAddr[6];
+    uint8_t srcAddr[6];
+    uint8_t src_ip[4];
+};
+
 class PortConfig {
     public:
-    uint64_t port_number;
+    uint64_t port_number = 0;
     uint8_t switch_mac_address[6];
     uint8_t client_mac_address[6];
     uint8_t client_ip_address[4];
 
+    //TODO fixme
     std::string pprint() {
         auto s = std::stringstream();
         s << "Port ( " << port_number
@@ -29,6 +39,7 @@ class Config {
 	std::string listen_interface = std::string("");
     std::string program_name = std::string("");
     std::shared_ptr<std::vector<PortConfig>> port_configs = std::shared_ptr<std::vector<PortConfig>>(new std::vector<PortConfig>());
+    std::shared_ptr<std::vector<Capability>> capabilities = std::shared_ptr<std::vector<Capability>>(new std::vector<Capability>());
 
     Config(std::string listen_address, uint16_t listen_port, std::string listen_interface) : 
     listen_address(listen_address), 
@@ -40,4 +51,6 @@ class Config {
     };
     Config() {};
     void add_port_config(std::string path);
+    PortConfig GetPortConfigByDestMacAddr(uint8_t* dest_addr);
+    PortConfig GetPortConfigByIPAddr(uint8_t* ip_addr);
 };

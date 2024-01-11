@@ -17,6 +17,7 @@ Controller::Controller(bf_switchd_context_t *switchd_ctx, std::shared_ptr<bfrt::
     this->switch_context = switchd_ctx;
     this->bfrtInfo = info;
     this->socket = std::shared_ptr<UDPTransport>(new UDPTransport(cfg));
+    this->config = cfg;
 
     auto bf_status = this->bfrtInfo->bfrtTableFromNameGet("Ingress.cap_table", &this->cap_table);
   	assert(bf_status == BF_SUCCESS);
@@ -93,6 +94,15 @@ Controller::Controller(bf_switchd_context_t *switchd_ctx, std::shared_ptr<bfrt::
 
     bf_status = this->setup_routing_table(cfg->port_configs);
     assert(bf_status == BF_SUCCESS);
+
+    for(Capability &cap : *cfg->capabilities) {
+        if (cap.port_number == 0) {
+            PortConfig p = this->config->GetPortConfigByDestMacAddr(cap.dstAddr);
+            cap.port_number = p.port_number;
+        }
+
+        this->cap_insert(cap);
+    }
 }
 
 bf_status_t Controller::setup_routing_table(std::shared_ptr<std::vector<PortConfig>> ports) {
@@ -188,38 +198,55 @@ void Controller::run() {
     this->cpu_mirror_listener.detach();
 }
 
-
+// How to perform Table modifications via the C++ API is not well documented, thus this is
+// mostly copied and adapted API usage from:
 // https://github.com/COMSYS/pie-for-tofino/blob/main/bfrt_cpp/src/run_controlplane_pie.cpp
-void Controller::cap_insert(struct Request::InsertCapHeader *hdr) {
+void Controller::cap_insert(Capability cap) {
+    LOG(INFO) << "Inserting Cap: " << cap.cap_id;
 
-	auto flag = bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW;
+    auto flag = bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW;
 
 	std::unique_ptr<bfrt::BfRtTableKey> key;
 
     auto bf_status = this->cap_table->keyAllocate(&key);
 	assert(bf_status == BF_SUCCESS);
 
-	bf_status = key->setValue(this->cap_table_fields.cap_id, hdr->cap_id);
+	bf_status = key->setValue(this->cap_table_fields.cap_id, cap.cap_id);
 	assert(bf_status == BF_SUCCESS);
-    key->setValue(this->cap_table_fields.src_addr, hdr->cap_owner_ip, 4);
+    key->setValue(this->cap_table_fields.src_addr, cap.src_ip, 4);
 
     std::unique_ptr<bfrt::BfRtTableData> d;
     bf_status = this->cap_table->dataAllocate(this->cap_table_fields.action_forward, &d);
     assert(bf_status == BF_SUCCESS);
 
-    uint8_t destmac[6] = {0xff};
-    bf_status = d->setValue(1, destmac, 6);
+    bf_status = d->setValue(1, cap.dstAddr, 6);
+	assert(bf_status == BF_SUCCESS);
+
+    bf_status = d->setValue(2, cap.srcAddr, 6);
 	assert(bf_status == BF_SUCCESS);
 
     //port
-    bf_status = d->setValue(2, (uint64_t)9);
+    bf_status = d->setValue(3, cap.port_number);
 	assert(bf_status == BF_SUCCESS);
 
+    bool is_new = false;
     this->session->beginTransaction(false);
-	bf_status = this->cap_table->tableEntryAdd(*this->session, *this->device, 0,
-									*key.get(), *d.get());
-	assert(bf_status == BF_SUCCESS);
+	bf_status = this->cap_table->tableEntryAddOrMod(*this->session, *this->device, 0,
+									*key.get(), *d.get(), &is_new);
+	LOG_IF(INFO, bf_status != BF_SUCCESS) << "Failed to insert or update cap: " << cap.cap_id;
     this->session->commitTransaction(true);
+}
+
+void Controller::cap_insert(struct Request::InsertCapHeader *hdr) {
+    PortConfig port = this->config->GetPortConfigByIPAddr(hdr->cap_owner_ip);
+    Capability c;
+    memcpy(c.srcAddr, port.switch_mac_address, 6);
+    memcpy(c.dstAddr, port.client_mac_address, 6);
+    c.port_number = port.port_number;
+    memcpy(c.src_ip, hdr->cap_owner_ip, 4);
+    c.cap_id = hdr->cap_id;
+
+    this->cap_insert(c);
 }
 
 bf_status_t Controller::configure_mirroring(uint16_t session_id_val, uint64_t eport) {

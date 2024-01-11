@@ -41,6 +41,7 @@ class Controller {
     std::shared_ptr<UDPTransport> socket;
     bf_switchd_context_t *switch_context = nullptr;
     std::shared_ptr<bfrt::BfRtSession> session = nullptr;
+    std::shared_ptr<Config> config = nullptr;
     bf_rt_target_t *device = nullptr;
     const bfrt::BfRtInfo *bfrtInfo = nullptr;
     const bfrt::BfRtTable* cap_table = nullptr;
@@ -51,6 +52,7 @@ class Controller {
     struct ARPTableFieldIds arp_table_fields = { 0 };
     struct RoutingTableFieldIds routing_table_fields = { 0 };
     void cap_insert(struct Request::InsertCapHeader* hdr);
+    void cap_insert(Capability cap);
     
     bf_status_t configure_mirroring(uint16_t session_id_val, uint64_t eport);
     bf_status_t configure_mirror_port(uint16_t session_id_val, uint64_t iport, uint64_t eport);
