@@ -58,8 +58,18 @@ Controller::Controller(bf_switchd_context_t *switchd_ctx, std::shared_ptr<bfrt::
         LOG(INFO) << "Id: " << i << " name: " << name << " size: " << size;
     }
 
-    // configure front ports
-    bf_status = this->enable_device_port(1, BF_SPEED_100G, BF_FEC_TYP_RS);
+//    // configure front ports
+//    bf_status = this->enable_device_port(1, BF_SPEED_100G, BF_FEC_TYP_RS);
+//    assert(bf_status == BF_SUCCESS);
+//    bf_status = this->enable_device_port(32, BF_SPEED_100G, BF_FEC_TYP_RS);
+//    assert(bf_status == BF_SUCCESS);
+//
+    // start CPU Port mirror session
+    bf_status = this->configure_mirroring(128, 64);
+    assert(bf_status == BF_SUCCESS);
+    bf_status = this->configure_mirror_port(128, 8, 64);
+    assert(bf_status == BF_SUCCESS);
+    bf_status = this->configure_mirror_port(128, 9, 64);
     assert(bf_status == BF_SUCCESS);
 
     bf_status = this->bfrtInfo->bfrtTableFromNameGet("Ingress.arp.arp_exact", &this->arp_table);
@@ -70,10 +80,56 @@ Controller::Controller(bf_switchd_context_t *switchd_ctx, std::shared_ptr<bfrt::
     bf_status = this->arp_table->actionIdGet("Ingress.arp.arp_reply", &this->arp_table_fields.arp_reply);
     assert(bf_status==BF_SUCCESS);
 
-
     bf_status = this->setup_arp(cfg->port_configs);
     assert(bf_status == BF_SUCCESS);
-    
+
+    bf_status = this->bfrtInfo->bfrtTableFromNameGet("Ingress.routing", &this->routing_table);
+  	assert(bf_status == BF_SUCCESS);
+    bf_status = this->routing_table->keyFieldIdGet("hdr.ipv4.dstAddr", &this->routing_table_fields.ipaddr);
+    assert(bf_status==BF_SUCCESS);
+
+    bf_status = this->routing_table->actionIdGet("Ingress.capAllow_forward", &this->routing_table_fields.forward);
+    assert(bf_status==BF_SUCCESS);
+
+    bf_status = this->setup_routing_table(cfg->port_configs);
+    assert(bf_status == BF_SUCCESS);
+}
+
+bf_status_t Controller::setup_routing_table(std::shared_ptr<std::vector<PortConfig>> ports) {
+    bf_status_t bf_status;
+    auto flag = bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW;
+
+    std::unique_ptr<bfrt::BfRtTableKey> key;
+
+    bf_status = this->routing_table->keyAllocate(&key);
+    assert(bf_status == BF_SUCCESS);
+
+    for(PortConfig &port : *ports) {
+        bf_status = key->setValue(this->routing_table_fields.ipaddr, port.client_ip_address, 4);
+        assert(bf_status == BF_SUCCESS);
+        std::unique_ptr<bfrt::BfRtTableData> d;
+        bf_status = this->routing_table->dataAllocate(this->routing_table_fields.forward, &d);
+        assert(bf_status == BF_SUCCESS);
+        
+        bf_status = d->setValue(1, port.client_mac_address, 6);
+        assert(bf_status == BF_SUCCESS);
+        bf_status = d->setValue(2, port.switch_mac_address, 6);
+        assert(bf_status == BF_SUCCESS);
+        bf_status = d->setValue(3, port.port_number);
+        assert(bf_status == BF_SUCCESS);
+
+        bool is_new = false;
+
+        this->session->beginTransaction(false);
+        bf_status = this->routing_table->tableEntryAddOrMod(*this->session, *this->device, 0,
+                                        *key.get(), *d.get(), &is_new);
+        if(bf_status != BF_SUCCESS) {
+            LOG(INFO) << "Failed to insert Routing Entry for " << port.pprint() << bf_err_str(bf_status);
+        }
+        this->session->commitTransaction(true);
+    }
+
+    return BF_SUCCESS;
 }
 
 bf_status_t Controller::setup_arp(std::shared_ptr<std::vector<PortConfig>> ports) {
