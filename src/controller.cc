@@ -184,11 +184,15 @@ void Controller::run() {
 
             Request::Request req;
             req.parse(std::span(recv_buffer).subspan(0, len));
-            
+
             switch(req.common_hdr->cmd_type) {
                 case Request::CmdType::InsertCap:
                     LOG(INFO) << "Performing Table Insert for Capability";
                     this->cap_insert(req.insert_cap_hdr);
+                    break;
+                case Request::CmdType::CapRevoke:
+                    LOG(INFO) << "Revoking Capability";
+                    this->cap_revoke(req.revoke_cap_hdr);
                     break;
 
                 case Request::CmdType::ControllerResetSwitch:
@@ -209,6 +213,45 @@ void Controller::run() {
         }
     });
     this->cpu_mirror_listener.detach();
+}
+
+void Controller::reset_all_tables() {
+    this->session->beginTransaction(false);
+    auto status = this->cap_table->tableClear(*this->session, *this->device);
+    status |= this->routing_table->tableClear(*this->session, *this->device);
+    status |= this->arp_table->tableClear(*this->session, *this->device);
+    this->session->commitTransaction(true);
+
+    LOG_IF(INFO, status != BF_SUCCESS) << "Failed to clear tables, as requested.";
+}
+
+
+void Controller::cap_revoke(Capability cap) {
+ 	std::unique_ptr<bfrt::BfRtTableKey> key;
+
+    auto bf_status = this->cap_table->keyAllocate(&key);
+	assert(bf_status == BF_SUCCESS);
+
+    bf_status = key->setValue(this->cap_table_fields.cap_id, cap.cap_id);
+	assert(bf_status == BF_SUCCESS);
+
+
+    bf_status = key->setValue(this->cap_table_fields.src_addr, cap.src_ip, 4);
+	assert(bf_status == BF_SUCCESS);
+
+    this->session->beginTransaction(false);
+	bf_status = this->cap_table->tableEntryDel(*this->session, *this->device, 0,
+									*key.get());
+	LOG_IF(INFO, bf_status != BF_SUCCESS) << "Failed to insert or update cap: " << cap.cap_id;
+    this->session->commitTransaction(true);
+}
+
+void Controller::cap_revoke(Request::RevokeCapHeader* hdr) {
+    Capability c;
+    c.cap_id = hdr->cap_id;
+    memcpy(c.src_ip, hdr->cap_owner_ip, 4);
+
+    this->cap_revoke(c);
 }
 
 // How to perform Table modifications via the C++ API is not well documented, thus this is

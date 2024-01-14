@@ -55,6 +55,11 @@ namespace Request {
         uint8_t cap_type;
         uint8_t object_owner[10];
     };
+    
+    struct RevokeCapHeader {
+        uint8_t cap_owner_ip[10];
+        uint64_t cap_id;
+    };
 
     enum ControllerCMD {
         NONE = 0,
@@ -69,6 +74,7 @@ class Request {
     ControllerCMD controller_command = NONE;
     struct CommonHeader* common_hdr = nullptr;
     struct InsertCapHeader* insert_cap_hdr = nullptr;
+    struct RevokeCapHeader* revoke_cap_hdr = nullptr;
     Request() {};
 
     void parse(std::span<uint8_t> data);

@@ -18,6 +18,9 @@ namespace Request {
             
             case CapRevoke:
                 LOG(INFO) << "Received  Revoke Cap Request for cap id " << common_hdr->cap_id << std::endl;
+                revoke_cap_hdr = reinterpret_cast<::Request::RevokeCapHeader*>(data.subspan(sizeof(CommonHeader), 
+                                                                            sizeof(::Request::RevokeCapHeader)).data());
+                
                 break;
 
             case ControllerResetSwitch:
