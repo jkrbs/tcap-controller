@@ -26,6 +26,7 @@ add_executable(control-plane    src/control-plane.cc
                                 src/config.cc 
                                 src/controller.cc
                                 src/request.cc
+                                src/timer.cc
                                 src/transport-udp.cc)
 
 target_link_libraries(control-plane Threads::Threads)

@@ -29,6 +29,11 @@ namespace Request {
 
         //P4 Implementation specific OP Codes
         InsertCap = 64,
+
+        ControllerResetSwitch = 128,
+        ControllerStop = 129,
+        ControllerStartTimer = 130,
+        ControllerStopTimer = 131
     };
 
     enum CapType {
@@ -51,9 +56,17 @@ namespace Request {
         uint8_t object_owner[10];
     };
 
+    enum ControllerCMD {
+        NONE = 0,
+        RESET_SWITCH = 1,
+        STOP = 2,
+        START_TIMER = 3,
+        STOP_TIMER_AND_PRINT = 4
+    };
+
 class Request {
     public:
-
+    ControllerCMD controller_command = NONE;
     struct CommonHeader* common_hdr = nullptr;
     struct InsertCapHeader* insert_cap_hdr = nullptr;
     Request() {};

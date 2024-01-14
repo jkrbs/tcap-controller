@@ -5,6 +5,7 @@
 #include <transport_UDP.hpp>
 #include <config.hpp>
 #include <request.hpp>
+#include <timer.hpp>
 
 #include <bf_rt/bf_rt_common.h>
 #include <bf_rt/bf_rt_table_key.hpp>
@@ -42,6 +43,8 @@ class Controller {
     bf_switchd_context_t *switch_context = nullptr;
     std::shared_ptr<bfrt::BfRtSession> session = nullptr;
     std::shared_ptr<Config> config = nullptr;
+    Timer timer;
+
     bf_rt_target_t *device = nullptr;
     const bfrt::BfRtInfo *bfrtInfo = nullptr;
     const bfrt::BfRtTable* cap_table = nullptr;

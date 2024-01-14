@@ -190,6 +190,19 @@ void Controller::run() {
                     LOG(INFO) << "Performing Table Insert for Capability";
                     this->cap_insert(req.insert_cap_hdr);
                     break;
+
+                case Request::CmdType::ControllerResetSwitch:
+                    this->reset_all_tables();
+                    break;
+                case Request::CmdType::ControllerStop:
+                    exit(EXIT_SUCCESS);
+                    break;
+                case Request::CmdType::ControllerStartTimer:
+                    this->timer.start();
+                    break;
+                case Request::CmdType::ControllerStopTimer:
+                    this->timer.stop();
+                    break;
                 default:
                     LOG(INFO) << "Invalid cmd_type in packet handling. This should have been caught earlier.";
             }
