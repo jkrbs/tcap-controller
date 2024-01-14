@@ -42,7 +42,9 @@ std::size_t UDPTransport::recv(std::span<uint8_t> buf) {
         LOG(FATAL) << "Received more bytes than the buffer can fit!";
     }    
     LOG(INFO) << "Received " << len << "bytes";
-    util::hexdump(buf.data(), len);
+
+    // util::hexdump(buf.data(), len);
+    
     return len;
 }
 

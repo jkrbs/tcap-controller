@@ -5,7 +5,7 @@ namespace Request {
     void Request::parse(std::span<uint8_t> data) {
         if (data.size() >= sizeof(CommonHeader)) {
             common_hdr = reinterpret_cast<struct CommonHeader*>(data.subspan(0, sizeof(CommonHeader)).data());
-            util::hexdump(data.data(), data.size());
+            // util::hexdump(data.data(), data.size());
             switch (CmdType(common_hdr->cmd_type))
             {
             case InsertCap:
