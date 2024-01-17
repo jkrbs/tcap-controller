@@ -9,7 +9,7 @@ namespace Request {
             switch (CmdType(common_hdr->cmd_type))
             {
             case InsertCap:
-                LOG(INFO) << "Received  Insert Cap Request for cap id " << common_hdr->cap_id << std::endl;
+                LOG(INFO) << "Received  Insert Cap Request for cap id " << (uint64_t)(common_hdr->cap_id >> 64) << std::endl;
 
                 insert_cap_hdr = reinterpret_cast<::Request::InsertCapHeader*>(data.subspan(sizeof(CommonHeader), 
                                                                             sizeof(::Request::InsertCapHeader)).data());
@@ -17,7 +17,7 @@ namespace Request {
                 break;
             
             case CapRevoke:
-                LOG(INFO) << "Received  Revoke Cap Request for cap id " << common_hdr->cap_id << std::endl;
+                LOG(INFO) << "Received  Revoke Cap Request for cap id " << (uint64_t)(common_hdr->cap_id >> 64) << std::endl;
                 revoke_cap_hdr = reinterpret_cast<::Request::RevokeCapHeader*>(data.subspan(sizeof(CommonHeader), 
                                                                             sizeof(::Request::RevokeCapHeader)).data());
                 

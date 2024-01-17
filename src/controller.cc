@@ -232,9 +232,8 @@ void Controller::cap_revoke(Capability cap) {
     auto bf_status = this->cap_table->keyAllocate(&key);
 	assert(bf_status == BF_SUCCESS);
 
-    bf_status = key->setValue(this->cap_table_fields.cap_id, cap.cap_id);
+    bf_status = key->setValue(this->cap_table_fields.cap_id, (uint8_t*)&cap.cap_id, sizeof(CapID));
 	assert(bf_status == BF_SUCCESS);
-
 
     bf_status = key->setValue(this->cap_table_fields.src_addr, cap.src_ip, 4);
 	assert(bf_status == BF_SUCCESS);
@@ -242,7 +241,7 @@ void Controller::cap_revoke(Capability cap) {
     this->session->beginTransaction(false);
 	bf_status = this->cap_table->tableEntryDel(*this->session, *this->device, 0,
 									*key.get());
-	LOG_IF(INFO, bf_status != BF_SUCCESS) << "Failed to insert or update cap: " << cap.cap_id;
+	LOG_IF(INFO, bf_status != BF_SUCCESS) << "Failed to insert or update cap: " << (uint64_t)(cap.cap_id>>64);
     this->session->commitTransaction(true);
 }
 
@@ -258,7 +257,7 @@ void Controller::cap_revoke(Request::RevokeCapHeader* hdr) {
 // mostly copied and adapted API usage from:
 // https://github.com/COMSYS/pie-for-tofino/blob/main/bfrt_cpp/src/run_controlplane_pie.cpp
 void Controller::cap_insert(Capability cap) {
-    LOG(INFO) << "Inserting Cap: " << cap.cap_id;
+    LOG(INFO) << "Inserting Cap: " << (uint64_t)(cap.cap_id>>64);
 
     auto flag = bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW;
 
@@ -267,7 +266,7 @@ void Controller::cap_insert(Capability cap) {
     auto bf_status = this->cap_table->keyAllocate(&key);
 	assert(bf_status == BF_SUCCESS);
 
-	bf_status = key->setValue(this->cap_table_fields.cap_id, cap.cap_id);
+	bf_status = key->setValue(this->cap_table_fields.cap_id, (uint8_t*)&cap.cap_id, sizeof(CapID));
 	assert(bf_status == BF_SUCCESS);
     key->setValue(this->cap_table_fields.src_addr, cap.src_ip, 4);
 
@@ -289,7 +288,7 @@ void Controller::cap_insert(Capability cap) {
     this->session->beginTransaction(false);
 	bf_status = this->cap_table->tableEntryAddOrMod(*this->session, *this->device, 0,
 									*key.get(), *d.get(), &is_new);
-	LOG_IF(INFO, bf_status != BF_SUCCESS) << "Failed to insert or update cap: " << cap.cap_id;
+	LOG_IF(INFO, bf_status != BF_SUCCESS) << "Failed to insert or update cap: " << (uint64_t)(cap.cap_id>>64);
     this->session->commitTransaction(true);
 }
 

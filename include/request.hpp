@@ -5,10 +5,10 @@
 #include <iostream>
 
 #include <util.hpp>
+    
+typedef __int128 CapID;
 
 namespace Request {
-    typedef uint64_t CapID;
-
     enum CmdType {
         Nop = 0,
         CapGetInfo = 1,
@@ -44,21 +44,21 @@ namespace Request {
         uint64_t size;
         uint32_t stream_id;
         uint32_t cmd_type;
-        uint64_t cap_id;
+        CapID cap_id;
     };
 
     typedef struct util::IpAddress IpAddress;
 
     struct InsertCapHeader {
         uint8_t cap_owner_ip[10];
-        uint64_t cap_id;
+        CapID cap_id;
         uint8_t cap_type;
         uint8_t object_owner[10];
     };
     
     struct RevokeCapHeader {
         uint8_t cap_owner_ip[10];
-        uint64_t cap_id;
+        CapID cap_id;
     };
 
     enum ControllerCMD {

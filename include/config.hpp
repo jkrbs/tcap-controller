@@ -3,10 +3,11 @@
 #include <memory>
 #include <vector>
 #include <sstream>
+#include "request.hpp"
 
 class Capability {
 public:
-    uint64_t cap_id;
+    CapID cap_id;
     uint64_t port_number = 0;
     uint8_t dstAddr[6];
     uint8_t srcAddr[6];

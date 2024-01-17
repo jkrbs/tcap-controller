@@ -102,7 +102,7 @@ void Config::add_port_config(std::string path)
 
                     // Capabilities are used in network byte order. So we have to swap on x86
                     c.port_number = 0;
-                    c.cap_id = __builtin_bswap64(cap->FindMember("cap_id")->value.GetUint64());
+                    c.cap_id = __builtin_bswap64(cap->FindMember("cap_id")->value.GetUint64()) << 64;
                     str2macaddr(cap->FindMember("srcAddr")->value.GetString(), c.srcAddr, 6);
                     str2macaddr(cap->FindMember("dstAddr")->value.GetString(), c.dstAddr, 6);
                     str2ip4addr(cap->FindMember("src_ip")->value.GetString(), c.src_ip, 4);
