@@ -6,6 +6,9 @@
 #include <vector>
 #include <request.hpp>
 
+#include <pthread.h>
+#include <sched.h>
+
 #include <glog/logging.h>
 #include <bf_rt/bf_rt_table_key.hpp>
 #include <bf_rt/bf_rt_table_data.hpp>
@@ -212,7 +215,17 @@ void Controller::run() {
             }
         }
     });
+
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(1, &cpuset);
+    int rc = pthread_setaffinity_np(this->cpu_mirror_listener.native_handle(),
+                                    sizeof(cpu_set_t), &cpuset);
+    if (rc != 0) {
+        std::cerr << "Error calling pthread_setaffinity_np: " << rc << "\n";
+    }
     this->cpu_mirror_listener.detach();
+
 }
 
 void Controller::reset_all_tables() {
