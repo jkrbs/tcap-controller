@@ -251,9 +251,14 @@ void Controller::cap_revoke(Capability cap) {
     bf_status = key->setValue(this->cap_table_fields.src_addr, cap.src_ip, 4);
 	assert(bf_status == BF_SUCCESS);
 
+    std::unique_ptr<bfrt::BfRtTableData> data;
+    bf_status = this->cap_table->dataAllocate(this->cap_table_fields.action_revoked, &d);
+    assert(bf_status == BF_SUCCESS);
+
+    bool is_new = false;
     this->session->beginTransaction(false);
-	bf_status = this->cap_table->tableEntryDel(*this->session, *this->device, 0,
-									*key.get());
+	bf_status = this->cap_table->tableEntryAddOrMod(*this->session, *this->device, 0,
+									*key.get(), *data.get(), &is_new);
 	LOG_IF(INFO, bf_status != BF_SUCCESS) << "Failed to insert or update cap: " << (uint64_t)(cap.cap_id>>64);
     this->session->commitTransaction(true);
 }
