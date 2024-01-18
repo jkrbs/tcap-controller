@@ -19,6 +19,8 @@ namespace Request {
         CapRevoke = 6,
         CapInvalid = 7,
         /* Gap in OPCode Numbers Caused by Packet Types Unsupported by this implementation */
+        MemoryCopy = 10,
+        MemoryCopyResponse = 11,
         RequestCreate = 13,
         RequestInvoke = 14,
         /* Gap in OPCode Numbers Caused by Packet Types Unsupported by this implementation */
