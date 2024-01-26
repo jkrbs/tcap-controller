@@ -5,8 +5,7 @@
 #include <iostream>
 
 #include <util.hpp>
-    
-typedef __int128 CapID;
+
 
 namespace Request {
     enum CmdType {
@@ -46,21 +45,21 @@ namespace Request {
         uint64_t size;
         uint32_t stream_id;
         uint32_t cmd_type;
-        CapID cap_id;
+        uint8_t cap_id[16];
     };
 
     typedef struct util::IpAddress IpAddress;
 
     struct InsertCapHeader {
-        uint8_t cap_owner_ip[10];
-        CapID cap_id;
+        uint8_t cap_owner_ip[4];
+        uint8_t cap_id[16];
         uint8_t cap_type;
         uint8_t object_owner[10];
     };
     
     struct RevokeCapHeader {
-        uint8_t cap_owner_ip[10];
-        CapID cap_id;
+        uint8_t cap_owner_ip[4];
+        uint8_t cap_id[16];
     };
 
     enum ControllerCMD {
@@ -71,12 +70,24 @@ namespace Request {
         STOP_TIMER_AND_PRINT = 4
     };
 
+    struct RequestInvokeHeader {
+        uint8_t num_of_caps;
+        uint8_t cap_parameters[16][4];
+    };
+
+    struct CapInvalidHeader {
+        uint8_t address[4];
+        uint8_t cap_id[16];
+    };
+
 class Request {
     public:
     ControllerCMD controller_command = NONE;
     struct CommonHeader* common_hdr = nullptr;
     struct InsertCapHeader* insert_cap_hdr = nullptr;
     struct RevokeCapHeader* revoke_cap_hdr = nullptr;
+    struct RequestInvokeHeader* request_invoke_hdr = nullptr;
+    struct CapInvalidHeader* cap_invalid_hdr = nullptr;
     Request() {};
 
     void parse(std::span<uint8_t> data);

@@ -55,9 +55,11 @@ class Controller {
     struct ARPTableFieldIds arp_table_fields = { 0 };
     struct RoutingTableFieldIds routing_table_fields = { 0 };
     void cap_insert(struct Request::InsertCapHeader* hdr);
+    void cap_insert_continuations(struct Request::Request* hdr);
     void cap_insert(Capability cap);
     void cap_revoke(Capability cap);
     void cap_revoke(Request::RevokeCapHeader* hdr);
+    void cap_invalid(Request::CapInvalidHeader* hdr);
 
     void reset_all_tables();
 

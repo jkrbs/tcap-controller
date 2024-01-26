@@ -2,6 +2,8 @@
 #include <controller.hpp>
 #include <config.hpp>
 #include "transport_UDP.hpp"
+#include <util.hpp>
+
 #include <span>
 #include <vector>
 #include <request.hpp>
@@ -71,9 +73,17 @@ Controller::Controller(bf_switchd_context_t *switchd_ctx, std::shared_ptr<bfrt::
     // start CPU Port mirror session
     bf_status = this->configure_mirroring(128, 64);
     assert(bf_status == BF_SUCCESS);
+    // bf_status = this->configure_mirroring(0, 64);
+    // assert(bf_status == BF_SUCCESS);
+    bf_status = this->configure_mirror_port(128, 0, 64);
+    assert(bf_status == BF_SUCCESS);
+    bf_status = this->configure_mirror_port(128, 31, 64);
+    assert(bf_status == BF_SUCCESS);
     bf_status = this->configure_mirror_port(128, 8, 64);
     assert(bf_status == BF_SUCCESS);
     bf_status = this->configure_mirror_port(128, 9, 64);
+    assert(bf_status == BF_SUCCESS);
+    bf_status = this->configure_mirror_port(128, 128, 64);
     assert(bf_status == BF_SUCCESS);
 
     bf_status = this->bfrtInfo->bfrtTableFromNameGet("Ingress.arp.arp_exact", &this->arp_table);
@@ -118,7 +128,7 @@ bf_status_t Controller::setup_routing_table(std::shared_ptr<std::vector<PortConf
     assert(bf_status == BF_SUCCESS);
 
     for(PortConfig &port : *ports) {
-        bf_status = key->setValue(this->routing_table_fields.ipaddr, port.client_ip_address, 4);
+        bf_status = key->setValueLpm(this->routing_table_fields.ipaddr, port.client_ip_address, 24, 4);
         assert(bf_status == BF_SUCCESS);
         std::unique_ptr<bfrt::BfRtTableData> d;
         bf_status = this->routing_table->dataAllocate(this->routing_table_fields.forward, &d);
@@ -184,6 +194,9 @@ void Controller::run() {
 
         while(1) {
             size_t len = this->socket->recv(std::span(recv_buffer));
+            if (len < sizeof(Request::CommonHeader)) {
+                continue;
+            }
 
             Request::Request req;
             req.parse(std::span(recv_buffer).subspan(0, len));
@@ -197,7 +210,15 @@ void Controller::run() {
                     LOG(INFO) << "Revoking Capability";
                     this->cap_revoke(req.revoke_cap_hdr);
                     break;
-
+                case Request::CmdType::CapInvalid:
+                    LOG(INFO) << "CapInvalid Received id: ";
+                    util::hexdump(&(req.cap_invalid_hdr->cap_id), sizeof(16));
+                    this->cap_invalid(req.cap_invalid_hdr);
+                    break;
+                case Request::CmdType::RequestInvoke:
+                    LOG(INFO) << "Revoking Capability";
+                    this->cap_insert_continuations(&req);
+                    break;
                 case Request::CmdType::ControllerResetSwitch:
                     this->reset_all_tables();
                     break;
@@ -245,28 +266,36 @@ void Controller::cap_revoke(Capability cap) {
     auto bf_status = this->cap_table->keyAllocate(&key);
 	assert(bf_status == BF_SUCCESS);
 
-    bf_status = key->setValue(this->cap_table_fields.cap_id, (uint8_t*)&cap.cap_id, sizeof(CapID));
+    bf_status = key->setValue(this->cap_table_fields.cap_id, (uint8_t*)&cap.cap_id, 16);
 	assert(bf_status == BF_SUCCESS);
 
     bf_status = key->setValue(this->cap_table_fields.src_addr, cap.src_ip, 4);
 	assert(bf_status == BF_SUCCESS);
 
     std::unique_ptr<bfrt::BfRtTableData> data;
-    bf_status = this->cap_table->dataAllocate(this->cap_table_fields.action_revoked, &d);
+    bf_status = this->cap_table->dataAllocate(this->cap_table_fields.action_revoked, &data);
     assert(bf_status == BF_SUCCESS);
 
     bool is_new = false;
     this->session->beginTransaction(false);
 	bf_status = this->cap_table->tableEntryAddOrMod(*this->session, *this->device, 0,
 									*key.get(), *data.get(), &is_new);
-	LOG_IF(INFO, bf_status != BF_SUCCESS) << "Failed to insert or update cap: " << (uint64_t)(cap.cap_id>>64);
+	LOG_IF(INFO, bf_status != BF_SUCCESS) << "Failed to insert or update cap: ";
     this->session->commitTransaction(true);
 }
 
 void Controller::cap_revoke(Request::RevokeCapHeader* hdr) {
     Capability c;
-    c.cap_id = hdr->cap_id;
+    memcpy(c.cap_id, hdr->cap_id, 16);
     memcpy(c.src_ip, hdr->cap_owner_ip, 4);
+
+    this->cap_revoke(c);
+}
+
+void Controller::cap_invalid(Request::CapInvalidHeader* hdr) {
+    Capability c;
+    memcpy(c.cap_id, hdr->cap_id, 16);
+    memcpy(c.src_ip, hdr->address, 4);
 
     this->cap_revoke(c);
 }
@@ -275,7 +304,7 @@ void Controller::cap_revoke(Request::RevokeCapHeader* hdr) {
 // mostly copied and adapted API usage from:
 // https://github.com/COMSYS/pie-for-tofino/blob/main/bfrt_cpp/src/run_controlplane_pie.cpp
 void Controller::cap_insert(Capability cap) {
-    LOG(INFO) << "Inserting Cap: " << (uint64_t)(cap.cap_id>>64);
+    LOG(INFO) << "Inserting Cap";
 
     auto flag = bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW;
 
@@ -284,7 +313,7 @@ void Controller::cap_insert(Capability cap) {
     auto bf_status = this->cap_table->keyAllocate(&key);
 	assert(bf_status == BF_SUCCESS);
 
-	bf_status = key->setValue(this->cap_table_fields.cap_id, (uint8_t*)&cap.cap_id, sizeof(CapID));
+	bf_status = key->setValue(this->cap_table_fields.cap_id, (uint8_t*)&cap.cap_id, 16);
 	assert(bf_status == BF_SUCCESS);
     key->setValue(this->cap_table_fields.src_addr, cap.src_ip, 4);
 
@@ -306,7 +335,7 @@ void Controller::cap_insert(Capability cap) {
     this->session->beginTransaction(false);
 	bf_status = this->cap_table->tableEntryAddOrMod(*this->session, *this->device, 0,
 									*key.get(), *d.get(), &is_new);
-	LOG_IF(INFO, bf_status != BF_SUCCESS) << "Failed to insert or update cap: " << (uint64_t)(cap.cap_id>>64);
+	LOG_IF(INFO, bf_status != BF_SUCCESS) << "Failed to insert or update cap";
     this->session->commitTransaction(true);
 }
 
@@ -317,9 +346,13 @@ void Controller::cap_insert(struct Request::InsertCapHeader *hdr) {
     memcpy(c.dstAddr, port.client_mac_address, 6);
     c.port_number = port.port_number;
     memcpy(c.src_ip, hdr->cap_owner_ip, 4);
-    c.cap_id = hdr->cap_id;
+    memcpy(c.cap_id, hdr->cap_id, 16);
 
     this->cap_insert(c);
+}
+
+void Controller::cap_insert_continuations(struct Request::Request* hdr) {
+    // TODO: This should not be necessery at all
 }
 
 bf_status_t Controller::configure_mirroring(uint16_t session_id_val, uint64_t eport) {

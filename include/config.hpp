@@ -7,7 +7,7 @@
 
 class Capability {
 public:
-    CapID cap_id;
+    uint8_t cap_id[16];
     uint64_t port_number = 0;
     uint8_t dstAddr[6];
     uint8_t srcAddr[6];

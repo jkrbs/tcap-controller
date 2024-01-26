@@ -9,18 +9,28 @@ namespace Request {
             switch (CmdType(common_hdr->cmd_type))
             {
             case InsertCap:
-                LOG(INFO) << "Received  Insert Cap Request for cap id " << (uint64_t)(common_hdr->cap_id >> 64) << std::endl;
+                LOG(INFO) << "Received  Insert Cap Request for cap id " << std::endl;
 
                 insert_cap_hdr = reinterpret_cast<::Request::InsertCapHeader*>(data.subspan(sizeof(CommonHeader), 
                                                                             sizeof(::Request::InsertCapHeader)).data());
                 
                 break;
-            
+            case CapInvalid:
+                util::hexdump(data.data(), data.size());
+                cap_invalid_hdr = reinterpret_cast<::Request::CapInvalidHeader*>(data.subspan(sizeof(CommonHeader), 
+                                                                            sizeof(::Request::CapInvalidHeader)).data());
+                break;
+
             case CapRevoke:
-                LOG(INFO) << "Received  Revoke Cap Request for cap id " << (uint64_t)(common_hdr->cap_id >> 64) << std::endl;
+                LOG(INFO) << "Received  Revoke Cap Request" << std::endl;
                 revoke_cap_hdr = reinterpret_cast<::Request::RevokeCapHeader*>(data.subspan(sizeof(CommonHeader), 
                                                                             sizeof(::Request::RevokeCapHeader)).data());
-                
+                break;
+
+            case RequestInvoke:
+                LOG(INFO) << "Received  request invoke for cap id " << std::endl;
+                request_invoke_hdr = reinterpret_cast<::Request::RequestInvokeHeader*>(data.subspan(sizeof(CommonHeader), 
+                                                                            sizeof(::Request::RequestInvokeHeader)).data());
                 break;
 
             case ControllerResetSwitch:
