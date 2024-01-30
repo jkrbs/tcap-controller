@@ -52,6 +52,7 @@ namespace Request {
 
     struct InsertCapHeader {
         uint8_t cap_owner_ip[4];
+        uint8_t cap_owner_port[2];
         uint8_t cap_id[16];
         uint8_t cap_type;
         uint8_t object_owner[10];
@@ -59,6 +60,7 @@ namespace Request {
     
     struct RevokeCapHeader {
         uint8_t cap_owner_ip[4];
+        uint8_t cap_owner_port[2];
         uint8_t cap_id[16];
     };
 
@@ -78,6 +80,7 @@ namespace Request {
 
     struct CapInvalidHeader {
         uint8_t address[4];
+        uint8_t port[2];
         uint8_t cap_id[16];
     };
 

@@ -74,10 +74,11 @@ void Config::add_port_config(std::string path)
                 if (port->HasMember("interface") &&
                     port->HasMember("switch_mac") &&
                     port->HasMember("client_mac") &&
-                    port->HasMember("client_ip4a"))
+                    port->HasMember("client_ip4a") &&
+                    port->HasMember("client_udp_port"))
                 {
 
-                    PortConfig port_config;
+                    PortConfig port_config = {0};
                     port_config.port_number = port->FindMember("interface")->value.GetUint64();
                     if (port->FindMember("switch_mac")->value.GetStringLength() != mac_str_len)
                         return;
@@ -85,7 +86,7 @@ void Config::add_port_config(std::string path)
                     str2macaddr(port->FindMember("switch_mac")->value.GetString(), port_config.switch_mac_address, 6);
                     str2macaddr(port->FindMember("client_mac")->value.GetString(), port_config.client_mac_address, 6);
                     str2ip4addr(port->FindMember("client_ip4a")->value.GetString(), port_config.client_ip_address, 4);
-
+                    port_config.client_udp_port = static_cast<uint16_t>(port->FindMember("client_udp_port")->value.GetInt64());
                     this->port_configs->push_back(port_config);
                 }
             }

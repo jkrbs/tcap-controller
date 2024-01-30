@@ -22,6 +22,7 @@ extern "C" {
 struct CapTableFieldIds {
   bf_rt_id_t cap_id;
   bf_rt_id_t src_addr;
+  bf_rt_id_t src_port;
   bf_rt_id_t action_revoked;
   bf_rt_id_t action_forward;
   bf_rt_id_t action_drop;

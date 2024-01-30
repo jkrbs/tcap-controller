@@ -12,6 +12,7 @@ public:
     uint8_t dstAddr[6];
     uint8_t srcAddr[6];
     uint8_t src_ip[4];
+    uint8_t src_port[2];
 };
 
 class PortConfig {
@@ -20,6 +21,7 @@ class PortConfig {
     uint8_t switch_mac_address[6];
     uint8_t client_mac_address[6];
     uint8_t client_ip_address[4];
+    uint16_t client_udp_port;
 
     //TODO fixme
     std::string pprint() {

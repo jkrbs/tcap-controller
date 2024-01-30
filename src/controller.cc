@@ -31,7 +31,8 @@ Controller::Controller(bf_switchd_context_t *switchd_ctx, std::shared_ptr<bfrt::
     assert(bf_status==BF_SUCCESS);
     bf_status = this->cap_table->keyFieldIdGet("src_addr", &this->cap_table_fields.src_addr);
     assert(bf_status==BF_SUCCESS);
-
+    bf_status = this->cap_table->keyFieldIdGet("src_port", &this->cap_table_fields.src_port);
+    assert(bf_status==BF_SUCCESS);
     bf_status = this->cap_table->actionIdGet("Ingress.capRevoked", &this->cap_table_fields.action_revoked);
     assert(bf_status==BF_SUCCESS);
 
@@ -271,6 +272,8 @@ void Controller::cap_revoke(Capability cap) {
 
     bf_status = key->setValue(this->cap_table_fields.src_addr, cap.src_ip, 4);
 	assert(bf_status == BF_SUCCESS);
+    bf_status = key->setValue(this->cap_table_fields.src_port, cap.src_port, 2);
+	assert(bf_status == BF_SUCCESS);
 
     std::unique_ptr<bfrt::BfRtTableData> data;
     bf_status = this->cap_table->dataAllocate(this->cap_table_fields.action_revoked, &data);
@@ -288,6 +291,7 @@ void Controller::cap_revoke(Request::RevokeCapHeader* hdr) {
     Capability c;
     memcpy(c.cap_id, hdr->cap_id, 16);
     memcpy(c.src_ip, hdr->cap_owner_ip, 4);
+    memcpy(c.src_port, hdr->cap_owner_port, 2);
 
     this->cap_revoke(c);
 }
@@ -296,6 +300,7 @@ void Controller::cap_invalid(Request::CapInvalidHeader* hdr) {
     Capability c;
     memcpy(c.cap_id, hdr->cap_id, 16);
     memcpy(c.src_ip, hdr->address, 4);
+    memcpy(c.src_port, hdr->port, 2);
 
     this->cap_revoke(c);
 }
@@ -315,8 +320,10 @@ void Controller::cap_insert(Capability cap) {
 
 	bf_status = key->setValue(this->cap_table_fields.cap_id, (uint8_t*)&cap.cap_id, 16);
 	assert(bf_status == BF_SUCCESS);
-    key->setValue(this->cap_table_fields.src_addr, cap.src_ip, 4);
-
+    bf_status = key->setValue(this->cap_table_fields.src_addr, cap.src_ip, 4);
+    assert(bf_status == BF_SUCCESS);
+    bf_status = key->setValue(this->cap_table_fields.src_port, cap.src_port, 2);
+	assert(bf_status == BF_SUCCESS);
     std::unique_ptr<bfrt::BfRtTableData> d;
     bf_status = this->cap_table->dataAllocate(this->cap_table_fields.action_forward, &d);
     assert(bf_status == BF_SUCCESS);
