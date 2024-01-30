@@ -73,6 +73,7 @@ namespace Request {
     struct RequestInvokeHeader {
         uint8_t num_of_caps;
         uint8_t cap_parameters[16][4];
+        uint8_t flags;
     };
 
     struct CapInvalidHeader {
